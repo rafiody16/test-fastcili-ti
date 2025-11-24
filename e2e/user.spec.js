@@ -1,12 +1,12 @@
 import { test, expect, chromium } from '@playwright/test';
 
 const LOGIN_URL = 'http://127.0.0.1:8000/login';
-const LEVEL_URL = 'http://127.0.0.1:8000/level';
+const USER_URL = 'http://127.0.0.1:8000/users';
 const USER_EMAIL = 'admin@jti.com';
 const USER_PASSWORD = 'password';
 
-async function loginAndGoToLevel(page) {
-    console.log('Melakukan Login dan Navigasi ke /level');
+async function loginAndGoToUsers(page) {
+    console.log('Melakukan Login dan Navigasi ke /users');
 
     await page.goto(LOGIN_URL, { timeout: 60000 });
 
@@ -22,76 +22,84 @@ async function loginAndGoToLevel(page) {
         throw new Error("Login gagal!");
     }
 
-    console.log('Berhasil login! Masuk ke halaman /level');
+    console.log('Berhasil login! Masuk ke halaman /users');
 
-    await page.goto(LEVEL_URL);
+    await page.goto(USER_URL);
     await page.waitForLoadState('networkidle');
 }
 
-
-// CREATE
-test('Create Level', async () => {
+/* ===============================
+   CREATE USER
+================================*/
+test('Create User', async () => {
     const browser = await chromium.launch({ headless: false });
     const context = await browser.newContext();
     const page = await context.newPage();
 
-    await loginAndGoToLevel(page);
+    await loginAndGoToUsers(page);
 
-    await page.click('#createButton');
+    await page.click('#createButton'); 
 
-    await page.fill('input[name="kode_level"]', 'LVL99');
-    await page.fill('input[name="nama_level"]', 'Level Testing');
+    await page.selectOption('select[name="id_level"]', '1');
+    await page.fill('input[name="nama"]', 'User Testing');
+    await page.fill('input[name="email"]', 'usertesting@example.com');
 
     await page.click('#submitButton');
 
-    await expect(page.locator('text=Level Testing')).toBeVisible();
+    await expect(page.locator('text=User Testing')).toBeVisible();
 
     await browser.close();
 });
 
-// READ
-test('Read Level Page', async () => {
+/* ===============================
+   READ USER PAGE
+================================*/
+test('Read User Page', async () => {
     const browser = await chromium.launch({ headless: false });
     const context = await browser.newContext();
     const page = await context.newPage();
 
-    await loginAndGoToLevel(page);
+    await loginAndGoToUsers(page);
 
-    await expect(page.locator('#table-level')).toBeVisible();
+    await expect(page.locator('#table-users')).toBeVisible();
 
     await browser.close();
 });
 
-// UPDATE
-test('Update Level', async () => {
+/* ===============================
+   UPDATE USER
+================================*/
+test('Update User', async () => {
     const browser = await chromium.launch({ headless: false });
     const context = await browser.newContext();
     const page = await context.newPage();
 
-    await loginAndGoToLevel(page);
+    await loginAndGoToUsers(page);
 
     await page.click('button.btn-info'); // tombol edit
 
-    await page.fill('input[name="nama_level"]', 'Level Updated');
+    await page.fill('input[name="nama"]', 'User Updated');
 
     await page.click('#submitUpdate');
 
-    await expect(page.locator('text=Level Updated')).toBeVisible();
+    await expect(page.locator('text=User Updated')).toBeVisible();
 
     await browser.close();
 });
 
-// DELETE
-test('Delete Level', async () => {
+/* ===============================
+   DELETE USER
+================================*/
+test('Delete User', async () => {
     const browser = await chromium.launch({ headless: false });
     const context = await browser.newContext();
     const page = await context.newPage();
 
-    await loginAndGoToLevel(page);
+    await loginAndGoToUsers(page);
 
     await page.click('button.btn-danger');
 
-    await expect(page.locator('text=Level Updated')).not.toBeVisible();
+    await expect(page.locator('text=User Updated')).not.toBeVisible();
 
     await browser.close();
 });
