@@ -36,7 +36,11 @@ host('production')
     ->set('ssh_args', ['-o StrictHostKeyChecking=no', '-o UserKnownHostsFile=/dev/null']);
 
 task('deploy:secrets', function () {
-    runLocally('scp -P {{port}} -o StrictHostKeyChecking=no .env {{remote_user}}@{{hostname}}:{{deploy_path}}/shared/.env');
+    $envContent = file_get_contents('.env');
+    run('mkdir -p {{deploy_path}}/shared');
+    run("cat > {{deploy_path}}/shared/.env <<'EOF'
+$envContent
+EOF");
 });
 
 task('deploy', [
