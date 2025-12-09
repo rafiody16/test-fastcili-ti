@@ -105,6 +105,8 @@ Route::group(['middleware' => 'auth'], function () {
 	/** -----------------------------
 	 *  Gedung
 	 *  ---------------------------- */
+	// routes/web.php (Contoh)
+	Route::resource('gedung', GedungController::class);
 	Route::prefix('gedung')->group(function () {
 		Route::get('/', [GedungController::class, 'index'])->name('gedung.index');
 		Route::get('/create', [GedungController::class, 'create']);
