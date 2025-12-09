@@ -54,15 +54,25 @@ task('deploy:secrets', function () {
     run("echo '$encoded' | base64 -d > {{deploy_path}}/shared/.env");
 });
 
+task('permissions', function () {
+    run('chmod -R 775 {{release_path}}/storage');
+    run('chmod -R 775 {{deploy_path}}/shared/storage');
+    run('chmod -R 775 {{release_path}}/public');
+});
+
+task('artisan:storage:link', function () {
+    run('{{bin/php}} {{release_path}}/artisan storage:link');
+});
+
 task('deploy', [
     'deploy:prepare',
     'deploy:secrets',
     'deploy:vendors',
     'deploy:shared',
+    'permissions',
     'artisan:storage:link',
     'artisan:queue:restart',
     'deploy:publish',
-    'deploy:unlock',
 ]);
 
 after('deploy:failed', 'deploy:unlock');
