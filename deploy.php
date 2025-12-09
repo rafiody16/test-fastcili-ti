@@ -29,7 +29,7 @@ set('bin/php', function () {
 });
 
 set('bin/composer', function () {
-    return '{{bin/php}} /usr/local/bin/composer';
+    return '{{bin/php}} /home/fascilit/composer.phar';
 });
 
 set('composer_options', '--verbose --prefer-dist --no-progress --no-interaction --no-dev --optimize-autoloader');
