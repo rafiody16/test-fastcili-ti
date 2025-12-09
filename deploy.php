@@ -24,6 +24,14 @@ add('writable_dirs', [
     "storage/logs",
 ]);
 
+set('bin/php', function () {
+    return '/opt/alt/php83/usr/bin/php';
+});
+
+set('bin/composer', function () {
+    return '{{bin/php}} /usr/local/bin/composer';
+});
+
 set('composer_options', '--verbose --prefer-dist --no-progress --no-interaction --no-dev --optimize-autoloader');
 
 host('production')
