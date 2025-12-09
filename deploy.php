@@ -7,7 +7,7 @@ require 'contrib/npm.php';
 set('application', 'Fastcili-ti');
 set('repository', 'git@github.com:rafiody16/test-fastcili-ti.git');
 
-set('git_tty', true);
+set('git_tty', false);
 set('git_ssh_command', 'ssh -o StrictHostKeyChecking=no');
 
 set('keep_releases', 5);
