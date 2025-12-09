@@ -32,7 +32,7 @@ set('bin/composer', function () {
     return '{{bin/php}} /home/fascilit/composer.phar';
 });
 
-set('composer_options', '--verbose --prefer-dist --no-progress --no-interaction --no-dev --optimize-autoloader');
+set('composer_options', '--verbose --prefer-dist --no-progress --no-interaction --no-dev --optimize-autoloader --ignore-platform-reqs');
 
 host('production')
     ->setHostname('fortune.jagoanhosting.id')
