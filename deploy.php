@@ -61,7 +61,8 @@ task('permissions', function () {
 });
 
 task('artisan:storage:link', function () {
-    run('{{bin/php}} {{release_path}}/artisan storage:link');
+    run('rm -rf {{release_path}}/public/storage');
+    run('cp -r {{release_path}}/storage/app/public {{release_path}}/public/storage');
 });
 
 task('deploy', [
