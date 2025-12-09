@@ -29,7 +29,7 @@ set('composer_options', '--verbose --prefer-dist --no-progress --no-interaction 
 host('production')
     ->setHostname('fortune.jagoanhosting.id')
     ->set('remote_user', 'fascilit')
-    ->set('port', 22)
+    ->set('port', 21)
     ->set('branch', 'main')
     ->set('deploy_path', '/home/fascilit/public_html');
 
