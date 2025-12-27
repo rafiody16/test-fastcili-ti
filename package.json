@@ -13,7 +13,12 @@
         "test:pelapor:ui": "playwright test e2e/pelapor.spec.js --ui",
         "test:pelapor:headed": "playwright test e2e/pelapor.spec.js --headed",
         "test:pelapor:debug": "playwright test e2e/pelapor.spec.js --debug",
-        "test:report": "playwright show-report"
+        "test:report": "playwright show-report",
+        "k6:smoke": "k6 run k6/smoke-test.js",
+        "k6:load": "k6 run k6/load-test.js",
+        "k6:stress": "k6 run k6/stress-test.js",
+        "k6:spike": "k6 run k6/spike-test.js",
+        "k6:soak": "k6 run k6/soak-test.js"
     },
     "devDependencies": {
         "@playwright/test": "^1.56.1",
