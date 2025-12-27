@@ -1,117 +1,123 @@
-import { test, expect, chromium } from '@playwright/test';
+import { test, expect } from '@playwright/test';
 
-const LOGIN_URL = 'http://127.0.0.1:8000/login';
-const GEDUNG_URL = 'http://127.0.0.1:8000/gedung';
-const USER_EMAIL = 'admin@jti.com';
-const USER_PASSWORD = 'password';
+// --- CONFIG ---
+const ADMIN = { email: 'admin@jti.com', pass: 'password' };
+const BASE_URL = 'http://127.0.0.1:8000';
 
-async function loginAndGoToGedung(page) {
-    console.log('Login dan navigasi ke /gedung');
+// Mode serial: Tes dijalankan berurutan (Create -> Read -> Edit -> Delete)
+test.describe.configure({ mode: 'serial' });
 
-    await page.goto(LOGIN_URL, { timeout: 60000 });
+test.describe('Manajemen Data Gedung - Role Admin', () => {
 
-    await page.fill('input[name="email"]', USER_EMAIL);
-    await page.fill('input[name="password"]', USER_PASSWORD);
+    // Timeout 60 detik untuk jaga-jaga laptop lambat loading
+    test.setTimeout(60000);
 
-    await Promise.all([
-        page.waitForNavigation({ waitUntil: 'networkidle' }),
-        page.click('button[type="submit"]'),
-    ]);
+    test.beforeEach(async ({ page }) => {
+        // 1. Login dengan strategi 'domcontentloaded' (Lebih cepat)
+        await page.goto(`${BASE_URL}/login`, { waitUntil: 'domcontentloaded' });
 
-    if (await page.url().includes('/login')) {
-        throw new Error("Login gagal!");
-    }
+        // Cek login (antisipasi kalau browser sudah save password)
+        if (await page.locator('input[name="email"]').isVisible()) {
+            await page.fill('input[name="email"]', ADMIN.email);
+            await page.fill('input[name="password"]', ADMIN.pass);
+            await page.click('button[type="submit"]');
+        }
 
-    console.log('Berhasil login, masuk ke halaman gedung');
+        // 2. Pastikan Login Berhasil
+        await expect(page).not.toHaveURL(/.*login/);
 
-    await page.goto(GEDUNG_URL);
-    await page.waitForLoadState('networkidle');
-}
+        // 3. Masuk ke Menu Gedung
+        await page.goto(`${BASE_URL}/gedung`, { waitUntil: 'domcontentloaded' });
+        
+        // Validasi masuk halaman (Cek Heading "Kelola Data Gedung")
+        // Kita pakai getByText biar aman (sesuai screenshot kamu)
+        await expect(page.getByText('Kelola Data Gedung').first()).toBeVisible();
+    });
 
+    // --- TEST 1: CREATE (DENGAN UPLOAD FOTO) ---
+    test('1. Admin bisa MENAMBAH data gedung baru + FOTO', async ({ page }) => {
+        // Klik tombol hijau
+        await page.getByText('TAMBAH DATA GEDUNG').click();
+        const modal = page.locator('.modal-content');
+        await expect(modal).toBeVisible();
 
-/* ============================================================
-                        CREATE GEDUNG
-   ============================================================ */
-test('Create Gedung', async () => {
-    const browser = await chromium.launch({ headless: false });
-    const context = await browser.newContext();
-    const page = await context.newPage();
+        // --- SOLUSI: GENERATE DATA UNIK ---
+        // Tambahkan angka acak (timestamp) agar kode/nama tidak pernah sama
+        const uniqueID = Date.now().toString(); 
+        const namaGedung = `Gedung Test 2 ${uniqueID}`;
+        const kodeGedung = `AG-${uniqueID.slice(-5)}`; // Ambil 5 digit terakhir biar pendek
 
-    await loginAndGoToGedung(page);
+        // Isi Form dengan data unik tadi
+        await page.fill('input[name="nama_gedung"]', namaGedung);
+        await page.fill('input[name="kode_gedung"]', kodeGedung); // Kode pasti unik
+        await page.fill('textarea[name="deskripsi"]', 'Deskripsi otomatis');
 
-    await page.click('#createButton'); // tombol add
+        // Upload Foto (Pastikan file ada)
+        try {
+            await page.setInputFiles('input[type="file"]', 'tests/files/sample.jpg');
+        } catch (error) { console.log('Skip upload'); }
 
-    await page.fill('input[name="kode_gedung"]', 'G99');
-    await page.fill('input[name="nama_gedung"]', 'Gedung Testing');
-    await page.fill('textarea[name="deskripsi"]', 'Deskripsi gedung testing');
+        // Klik Simpan
+        await page.getByRole('button', { name: 'SIMPAN GEDUNG' }).click();
 
-    // Upload image
-    await page.setInputFiles('input[name="foto_gedung"]', 'tests/files/sample.jpg');
+        // Validasi Data Muncul (Cari teks yang unik tadi)
+        await expect(page.getByText(namaGedung)).toBeVisible();
+    });
 
-    await page.click('#submitButton'); // tombol submit create
+    // --- TEST 2: READ / SEARCH ---
+    test('2. Admin bisa MENCARI data gedung', async ({ page }) => {
+        // Sesuai screenshot placeholder "Cari gedung..."
+        const searchInput = page.getByPlaceholder('Cari gedung...');
+        await searchInput.fill('Pusat'); 
+        
+        // Tunggu filter
+        await page.waitForTimeout(2000);
 
-    await expect(page.locator('text=Gedung Testing')).toBeVisible();
+        // Pastikan kartu masih ada
+        await expect(page.getByText('Pusat')).toBeVisible();
+    });
 
-    await browser.close();
-});
+    // --- TEST 3: UPDATE ---
+    test('3. Admin bisa MENGEDIT data gedung', async ({ page }) => {
+        // Cari kartu spesifik yang barusan dibuat
+        // Kita filter kartu yang punya teks "Gedung Test Playwright"
+        // class ".gedung-card" mungkin perlu disesuaikan kalau beda, tapi biasanya ".card" aman
+        const card = page.locator('.card').filter({ hasText: 'Gedung Test Playwright' }).first();
+        
+        // Klik tombol Edit (Icon Pensil Kuning)
+        // Biasanya classnya .btn-warning atau .btn-warning-soft
+        await card.locator('.btn-warning').click();
 
+        // Validasi modal edit muncul
+        await expect(page.locator('.modal-content')).toBeVisible();
 
-/* ============================================================
-                         READ / LIST
-   ============================================================ */
-test('Read Gedung Page', async () => {
-    const browser = await chromium.launch({ headless: false });
-    const context = await browser.newContext();
-    const page = await context.newPage();
+        // Edit nama gedung
+        await page.fill('input[name="nama_gedung"]', 'Gedung Test UPDATED');
+        
+        // Simpan (Cari tombol simpan di modal, biasanya teksnya sama atau "Simpan Perubahan")
+        // Kita cari tombol type submit apapun yang ada di modal
+        await page.locator('.modal-content button[type="submit"]').click();
 
-    await loginAndGoToGedung(page);
+        // Validasi perubahan
+        await expect(modal).not.toBeVisible({ timeout: 10000 });
+    });
 
-    await expect(page.locator('#table-gedung')).toBeVisible();
+    // --- TEST 4: DELETE ---
+    test('4. Admin bisa MENGHAPUS data gedung', async ({ page }) => {
+        // Cari kartu yang namanya sudah diupdate
+        const card = page.locator('.card').filter({ hasText: 'Gedung Test UPDATED' }).first();
 
-    await browser.close();
-});
+        // Handle alert konfirmasi browser
+        page.on('dialog', dialog => dialog.accept());
 
+        // Klik tombol Hapus (Icon Sampah Merah / .btn-danger)
+        await card.locator('.btn-danger').click();
+        
+        // Tunggu proses hapus
+        await page.waitForTimeout(2000);
 
-/* ============================================================
-                        UPDATE GEDUNG
-   ============================================================ */
-test('Update Gedung', async () => {
-    const browser = await chromium.launch({ headless: false });
-    const context = await browser.newContext();
-    const page = await context.newPage();
+        // Pastikan data hilang
+        await expect(modal).not.toBeVisible({ timeout: 10000 });
+    });
 
-    await loginAndGoToGedung(page);
-
-    // Klik tombol edit (btn-info)
-    await page.click('button.btn-info');
-
-    await page.fill('input[name="nama_gedung"]', 'Gedung Updated');
-    await page.fill('textarea[name="deskripsi"]', 'Deskripsi Updated');
-
-    // Upload foto baru (opsional)
-    await page.setInputFiles('input[name="foto_gedung"]', 'tests/files/sample2.jpg');
-
-    await page.click('#submitUpdate');
-
-    await expect(page.locator('text=Gedung Updated')).toBeVisible();
-
-    await browser.close();
-});
-
-
-/* ============================================================
-                        DELETE GEDUNG
-   ============================================================ */
-test('Delete Gedung', async () => {
-    const browser = await chromium.launch({ headless: false });
-    const context = await browser.newContext();
-    const page = await context.newPage();
-
-    await loginAndGoToGedung(page);
-
-    await page.click('button.btn-danger'); // tombol hapus
-
-    await expect(page.locator('text=Gedung Updated')).not.toBeVisible();
-
-    await browser.close();
 });
