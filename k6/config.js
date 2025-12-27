@@ -1,8 +1,5 @@
-// K6 Configuration
 export const config = {
-    // Base URL aplikasi
-    // Local: http://localhost
-    // Production: https://fasilitas.rf.gd
+    // Izinkan override via env: BASE_URL
     baseURL: __ENV.BASE_URL || "https://fasilitas.rf.gd",
 
     // Test credentials
@@ -27,42 +24,42 @@ export const config = {
 
     // Test thresholds
     thresholds: {
-        // HTTP errors should be less than 1%
+        // HTTP errors seharusnya kurang dari 1%
         http_req_failed: ["rate<0.01"],
 
-        // 95% of requests should be below 2s
+        // 95% request seharusnya kurang dari 2 detik
         http_req_duration: ["p(95)<2000"],
 
-        // 99% of requests should be below 3s
+        // 99% request seharusnya kurang dari 3 detik
         "http_req_duration{expected_response:true}": ["p(99)<3000"],
 
-        // Median should be below 500ms
+        // Median seharusnya kurang dari 500ms
         "http_req_duration{expected_response:true}": ["med<500"],
     },
 
     // Load test options
     loadTest: {
         stages: [
-            { duration: "2m", target: 10 }, // Ramp up to 10 users
-            { duration: "5m", target: 10 }, // Stay at 10 users
-            { duration: "2m", target: 20 }, // Ramp up to 20 users
-            { duration: "5m", target: 20 }, // Stay at 20 users
-            { duration: "2m", target: 0 }, // Ramp down to 0 users
+            { duration: "2m", target: 10 }, // Naikkan ke 10 users selama 2 menit
+            { duration: "5m", target: 10 }, // Pertahankan 10 users selama 5 menit
+            { duration: "2m", target: 20 }, // Naikkan ke 20 users selama 2 menit
+            { duration: "5m", target: 20 }, // Pertahankan 20 users selama 5 menit
+            { duration: "2m", target: 0 }, // Turunkan ke 0 users selama 2 menit
         ],
     },
 
     // Stress test options
     stressTest: {
         stages: [
-            { duration: "2m", target: 10 }, // Ramp up to 10 users
-            { duration: "5m", target: 10 }, // Stay at 10 for warm up
-            { duration: "2m", target: 20 }, // Bump to 20 users
-            { duration: "5m", target: 20 }, // Stay at 20
-            { duration: "2m", target: 30 }, // Bump to 30 users
-            { duration: "5m", target: 30 }, // Stay at 30
-            { duration: "2m", target: 40 }, // Bump to 40 users
-            { duration: "5m", target: 40 }, // Stay at 40
-            { duration: "10m", target: 0 }, // Ramp down to 0 users
+            { duration: "2m", target: 10 }, // Naikkan ke 10 users selama 2 menit
+            { duration: "5m", target: 10 }, // Pertahankan 10 users selama 5 menit
+            { duration: "2m", target: 20 }, // Naikkan ke 20 users selama 2 menit
+            { duration: "5m", target: 20 }, // Pertahankan 20 users selama 5 menit
+            { duration: "2m", target: 30 }, // Naikkan ke 30 users selama 2 menit
+            { duration: "5m", target: 30 }, // Pertahankan 30 users selama 5 menit
+            { duration: "2m", target: 40 }, // Naikkan ke 40 users selama 2 menit
+            { duration: "5m", target: 40 }, // Pertahankan 40 users selama 5 menit
+            { duration: "10m", target: 0 }, // Turunkan ke 0 users selama 10 menit
         ],
     },
 
@@ -73,7 +70,7 @@ export const config = {
     },
 };
 
-// Helper function to get CSRF token
+// Helper function untuk mendapatkan CSRF token
 export function getCsrfToken(response) {
     const matches = response.body.match(
         /<meta name="csrf-token" content="(.+?)"/
@@ -81,7 +78,12 @@ export function getCsrfToken(response) {
     return matches ? matches[1] : null;
 }
 
-// Helper function to extract cookies
+// Helper untuk membaca cookie tambahan dari env (mis. __test dari challenge)
+export function getExtraCookie() {
+    return __ENV.EXTRA_COOKIE || "";
+}
+
+// Helper function untuk mengekstrak cookies
 export function extractCookies(response) {
     const cookies = {};
     const setCookieHeaders = response.headers["Set-Cookie"];
@@ -102,7 +104,7 @@ export function extractCookies(response) {
     return cookies;
 }
 
-// Helper function to build cookie string
+// Helper function untuk membangun string cookie
 export function buildCookieString(cookies) {
     return Object.entries(cookies)
         .map(([key, value]) => `${key}=${value}`)

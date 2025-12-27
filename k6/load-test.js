@@ -32,7 +32,7 @@ export const options = {
 
 // Setup function - runs once
 export function setup() {
-    console.log("🚀 Starting Load Test...");
+    console.log("🚀 Memulai Load Test...");
     console.log(`Base URL: ${config.baseURL}`);
     return { baseURL: config.baseURL };
 }
@@ -43,10 +43,10 @@ export default function (data) {
     let cookies = {};
     let csrfToken = "";
 
-    // ========== Authentication Flow ==========
-    group("Authentication", () => {
-        // Get login page and CSRF token
-        group("GET Login Page", () => {
+    // ========== Alur Autentikasi ==========
+    group("Autentikasi", () => {
+        // Dapatkan halaman login dan token CSRF
+        group("GET Halaman Login", () => {
             const loginPageRes = http.get(`${baseURL}/login`);
 
             check(loginPageRes, {
@@ -60,7 +60,7 @@ export default function (data) {
 
         sleep(1);
 
-        // Login as Admin
+        // Login dengan kredensial admin
         group("POST Login", () => {
             const loginRes = http.post(
                 `${baseURL}/login`,
@@ -96,7 +96,7 @@ export default function (data) {
         sleep(1);
     });
 
-    // ========== Dashboard Access ==========
+    // ========== Akses Dashboard ==========
     group("Dashboard", () => {
         const start = Date.now();
         const dashboardRes = http.get(`${baseURL}/home`, {
@@ -116,10 +116,10 @@ export default function (data) {
         sleep(2);
     });
 
-    // ========== Gedung CRUD Operations ==========
-    group("Gedung Operations", () => {
-        // List Gedung
-        group("List Gedung", () => {
+    // ========== Operasi CRUD Gedung ==========
+    group("Operasi Gedung", () => {
+        // Daftar Gedung
+        group("Daftar Gedung", () => {
             const start = Date.now();
             const listRes = http.get(`${baseURL}/gedung`, {
                 headers: {
@@ -157,10 +157,10 @@ export default function (data) {
         sleep(1);
     });
 
-    // ========== Ruangan CRUD Operations ==========
-    group("Ruangan Operations", () => {
-        // List Ruangan
-        group("List Ruangan", () => {
+    // ========== Operasi CRUD Ruangan ==========
+    group("Operasi Ruangan", () => {
+        // Daftar Ruangan
+        group("Daftar Ruangan", () => {
             const start = Date.now();
             const listRes = http.get(`${baseURL}/ruangan`, {
                 headers: {
@@ -181,10 +181,10 @@ export default function (data) {
         sleep(1);
     });
 
-    // ========== Fasilitas CRUD Operations ==========
-    group("Fasilitas Operations", () => {
-        // List Fasilitas
-        group("List Fasilitas", () => {
+    // ========== Operasi CRUD Fasilitas ==========
+    group("Operasi Fasilitas", () => {
+        // Daftar Fasilitas
+        group("Daftar Fasilitas", () => {
             const start = Date.now();
             const listRes = http.get(`${baseURL}/fasilitas`, {
                 headers: {
@@ -205,10 +205,10 @@ export default function (data) {
         sleep(1);
     });
 
-    // ========== Laporan Operations ==========
-    group("Laporan Operations", () => {
-        // List Laporan
-        group("List Laporan", () => {
+    // ========== Laporan ==========
+    group("Operasi Laporan", () => {
+        // Daftar Laporan
+        group("Daftar Laporan", () => {
             const start = Date.now();
             const listRes = http.get(`${baseURL}/laporan`, {
                 headers: {
@@ -228,10 +228,10 @@ export default function (data) {
         sleep(1);
     });
 
-    // ========== User Management ==========
-    group("User Management", () => {
-        // List Users
-        group("List Users", () => {
+    // ========== Manajemen Pengguna ==========
+    group("Manajemen Pengguna", () => {
+        // Daftar Pengguna
+        group("Daftar Pengguna", () => {
             const listRes = http.get(`${baseURL}/users`, {
                 headers: {
                     Cookie: buildCookieString(cookies),
@@ -248,10 +248,10 @@ export default function (data) {
         sleep(1);
     });
 
-    // ========== Level Management ==========
-    group("Level Management", () => {
-        // List Levels
-        group("List Levels", () => {
+    // ========== Manajemen Level ==========
+    group("Manajemen Level", () => {
+        // Daftar Level
+        group("Daftar Level", () => {
             const listRes = http.get(`${baseURL}/level`, {
                 headers: {
                     Cookie: buildCookieString(cookies),
@@ -271,13 +271,13 @@ export default function (data) {
     sleep(2);
 }
 
-// Teardown function - runs once after all iterations
+// Teardown function - jalankan sekali setelah semua iterasi
 export function teardown(data) {
-    console.log("✅ Load Test Completed!");
-    console.log(`Total API calls made across all VUs`);
+    console.log("✅ Load Test Selesai!");
+    console.log(`Total API calls yang dilakukan: ${data.api_calls}`);
 }
 
-// Handle summary for custom reporting
+// Handle ringkasan untuk pelaporan kustom
 export function handleSummary(data) {
     return {
         "k6-reports/load-test-summary.json": JSON.stringify(data, null, 2),
@@ -289,7 +289,7 @@ function textSummary(data, options) {
     const indent = options.indent || "";
     const colors = options.enableColors;
 
-    let summary = "\n" + indent + "📊 Load Test Summary\n";
+    let summary = "\n" + indent + "📊 Ringkasan Load Test\n";
     summary += indent + "═══════════════════════════════════════\n\n";
 
     // Overall stats
@@ -303,7 +303,7 @@ function textSummary(data, options) {
     if (metrics.http_req_duration) {
         summary +=
             indent +
-            `Response Time (avg): ${metrics.http_req_duration.values.avg.toFixed(
+            `Response Time (rata-rata): ${metrics.http_req_duration.values.avg.toFixed(
                 2
             )}ms\n`;
         summary +=

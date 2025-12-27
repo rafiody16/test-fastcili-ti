@@ -8,7 +8,6 @@ import {
     buildCookieString,
 } from "./config.js";
 
-// Custom metrics
 const errorRate = new Rate("error_rate");
 const successRate = new Rate("success_rate");
 const responseTime = new Trend("response_time");
@@ -20,18 +19,17 @@ const systemBreakpoint = new Gauge("system_breakpoint");
 export const options = {
     stages: config.stressTest.stages,
     thresholds: {
-        http_req_duration: ["p(95)<3000", "p(99)<5000"], // More lenient for stress test
-        http_req_failed: ["rate<0.05"], // Allow up to 5% error rate
-        error_rate: ["rate<0.10"], // Track custom error rate
+        http_req_duration: ["p(95)<3000", "p(99)<5000"], // Lebih longgar untuk stress test
+        http_req_failed: ["rate<0.05"], // Izinkan hingga 5% tingkat kesalahan
+        error_rate: ["rate<0.10"], // Lacak tingkat kesalahan khusus
         response_time: ["p(95)<3000"],
     },
 };
 
 // Setup function
 export function setup() {
-    console.log("🔥 Starting Stress Test...");
+    console.log("Memulai Stress Test...");
     console.log(`Base URL: ${config.baseURL}`);
-    console.log("⚠️  This test will push the system to its limits!");
     return { baseURL: config.baseURL };
 }
 
@@ -45,10 +43,10 @@ export default function (data) {
     // Update active users metric
     activeUsers.add(1);
 
-    // ========== Authentication ==========
-    group("Stress - Authentication", () => {
+    // ========== Autentikasi ==========
+    group("Stress - Autentikasi", () => {
         try {
-            // Get login page
+            // Dapatkan halaman login
             const loginPageRes = http.get(`${baseURL}/login`, {
                 timeout: "10s",
             });
@@ -286,15 +284,15 @@ export default function (data) {
 
 // Teardown function
 export function teardown(data) {
-    console.log("✅ Stress Test Completed!");
-    console.log("📊 Check the results to identify system breaking points");
+    console.log("✅ Stress Test Selesai!");
+    console.log("Cek hasil untuk mengidentifikasi system breaking points");
 }
 
 // Handle summary
 export function handleSummary(data) {
     const metrics = data.metrics;
 
-    // Determine system breaking point (when error rate exceeded threshold)
+    // Tentukan system breaking point (ketika error rate melebihi threshold)
     let breakpoint = "Not reached";
     if (metrics.error_rate && metrics.error_rate.values.rate > 0.05) {
         breakpoint = `Error rate exceeded at ${(
@@ -313,10 +311,10 @@ export function handleSummary(data) {
 function generateStressSummary(data, breakpoint) {
     const metrics = data.metrics;
 
-    let summary = "\n📊 Stress Test Summary\n";
+    let summary = "\n📊 Ringkasan Stress Test\n";
     summary += "═══════════════════════════════════════════════════\n\n";
 
-    summary += "🔥 System Performance Under Stress:\n\n";
+    summary += "System Performance Under Stress:\n\n";
 
     if (metrics.http_reqs) {
         summary += `  Total Requests: ${metrics.http_reqs.values.count}\n`;
@@ -356,31 +354,31 @@ function generateStressSummary(data, breakpoint) {
 
     summary += "\n═══════════════════════════════════════════════════\n";
 
-    // Performance recommendations
-    summary += "\n💡 Recommendations:\n\n";
+    // Rekomendasi kinerja
+    summary += "\n💡 Rekomendasi:\n\n";
 
     if (
         metrics.http_req_duration &&
         metrics.http_req_duration.values["p(95)"] > 3000
     ) {
-        summary += "  ⚠️  Response time is high under load\n";
-        summary += "     - Consider database query optimization\n";
-        summary += "     - Implement caching strategy\n";
-        summary += "     - Review N+1 query problems\n";
+        summary += "  ⚠️  Waktu respons tinggi di bawah beban\n";
+        summary += "     - Pertimbangkan optimasi query database\n";
+        summary += "     - Terapkan strategi caching\n";
+        summary += "     - Tinjau masalah query N+1\n";
     }
 
     if (metrics.error_rate && metrics.error_rate.values.rate > 0.05) {
-        summary += "  ⚠️  High error rate detected\n";
-        summary += "     - Check database connection pool size\n";
-        summary += "     - Review application logs for errors\n";
-        summary += "     - Consider horizontal scaling\n";
+        summary += "  ⚠️  Tingkat kesalahan tinggi terdeteksi\n";
+        summary += "     - Periksa ukuran pool koneksi database\n";
+        summary += "     - Tinjau log aplikasi untuk kesalahan\n";
+        summary += "     - Pertimbangkan penskalaan horizontal\n";
     }
 
     if (metrics.http_req_failed && metrics.http_req_failed.values.rate > 0.01) {
-        summary += "  ⚠️  Request failures detected\n";
-        summary += "     - Check server resources (CPU, Memory)\n";
-        summary += "     - Review timeout settings\n";
-        summary += "     - Consider load balancing\n";
+        summary += "  ⚠️  Request failures terdeteksi\n";
+        summary += "     - Periksa sumber daya server (CPU, Memori)\n";
+        summary += "     - Tinjau pengaturan timeout\n";
+        summary += "     - Pertimbangkan load balancing\n";
     }
 
     summary += "\n═══════════════════════════════════════════════════\n\n";
