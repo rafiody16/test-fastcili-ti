@@ -36,9 +36,9 @@ class AppServiceProvider extends ServiceProvider
         // }
 
         Paginator::useBootstrapFour();
-        PenugasanTeknisi::observe(PenugasanTeknisiObserver::class);
-        PelaporLaporan::observe(PelaporLaporanObserver::class);
-        PenugasanTeknisi::observe(FeedbackTeknisiObserver::class);
+        // PenugasanTeknisi::observe(PenugasanTeknisiObserver::class);
+        // PelaporLaporan::observe(PelaporLaporanObserver::class);
+        // PenugasanTeknisi::observe(FeedbackTeknisiObserver::class);
         config(['app.locale' => 'id']);
         Carbon::setLocale('id');
     }

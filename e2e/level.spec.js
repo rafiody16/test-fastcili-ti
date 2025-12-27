@@ -1,97 +1,145 @@
-import { test, expect, chromium } from '@playwright/test';
+import { test, expect } from '@playwright/test';
 
-const LOGIN_URL = 'http://127.0.0.1:8000/login';
-const LEVEL_URL = 'http://127.0.0.1:8000/level';
-const USER_EMAIL = 'admin@jti.com';
-const USER_PASSWORD = 'password';
+// --- CONFIG ---
+const ADMIN = { email: 'admin@jti.com', pass: 'password' };
+const BASE_URL = 'http://127.0.0.1:8000';
 
-async function loginAndGoToLevel(page) {
-    console.log('Melakukan Login dan Navigasi ke /level');
+// Generate Data Unik (Timestamp) agar tidak bentrok saat run berulang
+const TIMESTAMP = Date.now().toString().slice(-4);
+const DATA = {
+    kode: `LVL-${TIMESTAMP}`,
+    nama: `Level Test ${TIMESTAMP}`,
+    namaUpdate: `Level Test ${TIMESTAMP} UPDATED`
+};
 
-    await page.goto(LOGIN_URL, { timeout: 60000 });
+test.describe.configure({ mode: 'serial' });
 
-    await page.fill('input[name="email"]', USER_EMAIL);
-    await page.fill('input[name="password"]', USER_PASSWORD);
+test.describe('Manajemen Data Level - Role Admin', () => {
+    test.setTimeout(60000);
 
-    await Promise.all([
-        page.waitForNavigation({ waitUntil: 'networkidle' }),
-        page.click('button[type="submit"]'),
-    ]);
+    // --- SETUP: LOGIN ---
+    test.beforeEach(async ({ page }) => {
+        await page.goto(`${BASE_URL}/login`, { waitUntil: 'domcontentloaded' });
 
-    if (await page.url().includes('/login')) {
-        throw new Error("Login gagal!");
-    }
+        // Cek login
+        const emailInput = page.locator('input[name="email"]');
+        if (await emailInput.isVisible()) {
+            await emailInput.fill(ADMIN.email);
+            await page.fill('input[name="password"]', ADMIN.pass);
+            await page.click('button[type="submit"]');
+        }
 
-    console.log('Berhasil login! Masuk ke halaman /level');
+        await expect(page).not.toHaveURL(/.*login/);
+        await page.goto(`${BASE_URL}/level`, { waitUntil: 'domcontentloaded' });
+        
+        // Validasi judul halaman sesuai screenshot ("Kelola Data Level")
+        await expect(page.getByText('Kelola Data Level').first()).toBeVisible();
+    });
 
-    await page.goto(LEVEL_URL);
-    await page.waitForLoadState('networkidle');
-}
+    // --- TEST 1: CREATE ---
+    test('1. Admin bisa MENAMBAH level baru', async ({ page }) => {
+        // Klik Tambah
+        await page.getByText('TAMBAH DATA LEVEL').click();
 
+        // Isi Form
+        await expect(page.locator('.modal-content')).toBeVisible();
+        await page.fill('input[name="kode_level"]', DATA.kode);
+        await page.fill('input[name="nama_level"]', DATA.nama);
+        await page.locator('.modal-content button[type="submit"]').click();
 
-// CREATE
-test('Create Level', async () => {
-    const browser = await chromium.launch({ headless: false });
-    const context = await browser.newContext();
-    const page = await context.newPage();
+        // --- HANDLING POP-UP SUKSES ---
+        // Cari tombol OK/Tutup di SweetAlert
+        const btnOk = page.locator('.swal2-confirm, button:has-text("OK"), button:has-text("Tutup")').first();
+        await expect(btnOk).toBeVisible(); 
+        await btnOk.click();
 
-    await loginAndGoToLevel(page);
+        // --- SOLUSI PAGINATION: SEARCH DULU ---
+        // Karena data baru mungkin ada di page 2, kita search biar muncul
+        // Selector input search berdasarkan label "Search:" di screenshot
+        const searchInput = page.getByLabel('Search:').or(page.locator('input[type="search"]'));
+        await searchInput.first().fill(DATA.nama);
+        
+        // Tunggu tabel refresh
+        await page.waitForTimeout(1000);
 
-    await page.click('#createButton');
+        // Validasi Data Muncul
+        await expect(page.getByRole('cell', { name: DATA.nama })).toBeVisible();
+    });
 
-    await page.fill('input[name="kode_level"]', 'LVL99');
-    await page.fill('input[name="nama_level"]', 'Level Testing');
+    // --- TEST 2: READ (SEARCH) ---
+    test('2. Admin bisa MENCARI data level', async ({ page }) => {
+        // Search data yang dibuat tadi
+        const searchInput = page.getByLabel('Search:').or(page.locator('input[type="search"]'));
+        await searchInput.first().fill(DATA.nama);
+        
+        await page.waitForTimeout(1000);
+        await expect(page.getByRole('cell', { name: DATA.nama })).toBeVisible();
+    });
 
-    await page.click('#submitButton');
+    // --- TEST 3: UPDATE ---
+    test('3. Admin bisa MENGEDIT data level', async ({ page }) => {
+        // 1. Search dulu biar barisnya pasti ada di layar
+        const searchInput = page.getByLabel('Search:').or(page.locator('input[type="search"]'));
+        await searchInput.first().fill(DATA.nama);
+        await page.waitForTimeout(1000);
 
-    await expect(page.locator('text=Level Testing')).toBeVisible();
+        // 2. Cari baris yang berisi Nama Level kita
+        const targetRow = page.locator('tr').filter({ hasText: DATA.nama }).first();
 
-    await browser.close();
-});
+        // 3. Klik tombol "EDIT" (Sesuai teks di screenshot)
+        // Kita gunakan getByRole 'link' atau 'button' dengan nama 'EDIT'
+        const btnEdit = targetRow.getByRole('link', { name: 'EDIT' }).or(targetRow.getByRole('button', { name: 'EDIT' }));
+        await btnEdit.click();
 
-// READ
-test('Read Level Page', async () => {
-    const browser = await chromium.launch({ headless: false });
-    const context = await browser.newContext();
-    const page = await context.newPage();
+        // Validasi Modal
+        await expect(page.locator('.modal-content')).toBeVisible();
 
-    await loginAndGoToLevel(page);
+        // Update Data
+        await page.fill('input[name="nama_level"]', DATA.namaUpdate);
+        await page.locator('.modal-content button[type="submit"]').click();
 
-    await expect(page.locator('#table-level')).toBeVisible();
+        // Handle Pop-up Sukses
+        const btnOk = page.locator('.swal2-confirm, button:has-text("OK"), button:has-text("Tutup")').first();
+        await expect(btnOk).toBeVisible();
+        await btnOk.click();
 
-    await browser.close();
-});
+        // Validasi Update (Search nama baru)
+        await searchInput.first().fill(DATA.namaUpdate);
+        await page.waitForTimeout(1000);
+        await expect(page.getByRole('cell', { name: DATA.namaUpdate })).toBeVisible();
+    });
 
-// UPDATE
-test('Update Level', async () => {
-    const browser = await chromium.launch({ headless: false });
-    const context = await browser.newContext();
-    const page = await context.newPage();
+    // --- TEST 4: DELETE ---
+    test('4. Admin bisa MENGHAPUS data level', async ({ page }) => {
+        // 1. Search data yang sudah diupdate tadi
+        const searchInput = page.getByLabel('Search:').or(page.locator('input[type="search"]'));
+        await searchInput.first().fill(DATA.namaUpdate);
+        await page.waitForTimeout(1000);
 
-    await loginAndGoToLevel(page);
+        // 2. Cari baris tabel
+        const targetRow = page.locator('tr').filter({ hasText: DATA.namaUpdate }).first();
 
-    await page.click('button.btn-info'); // tombol edit
+        // 3. Klik tombol "DELETE" (Sesuai teks di screenshot)
+        const btnDelete = targetRow.getByRole('link', { name: 'DELETE' }).or(targetRow.getByRole('button', { name: 'DELETE' }));
+        await btnDelete.click();
 
-    await page.fill('input[name="nama_level"]', 'Level Updated');
+        // 4. Handle Konfirmasi Hapus (SweetAlert: "Ya, Hapus!")
+        // Cari tombol konfirmasi (biasanya warna merah/biru di popup)
+        const btnConfirm = page.locator('.swal2-confirm, button:has-text("Ya"), button:has-text("Yes")').first();
+        if (await btnConfirm.isVisible()) {
+            await btnConfirm.click();
+        }
 
-    await page.click('#submitUpdate');
+        // 5. Handle Pop-up Sukses Delete
+        const btnOk = page.locator('.swal2-confirm, button:has-text("OK"), button:has-text("Tutup")').first();
+        if (await btnOk.isVisible()) {
+            await btnOk.click();
+        }
 
-    await expect(page.locator('text=Level Updated')).toBeVisible();
+        // 6. Validasi Data Hilang
+        // Tunggu sebentar, pastikan tabel reload
+        await page.waitForTimeout(1000);
+        await expect(page.getByRole('cell', { name: DATA.namaUpdate })).not.toBeVisible();
+    });
 
-    await browser.close();
-});
-
-// DELETE
-test('Delete Level', async () => {
-    const browser = await chromium.launch({ headless: false });
-    const context = await browser.newContext();
-    const page = await context.newPage();
-
-    await loginAndGoToLevel(page);
-
-    await page.click('button.btn-danger');
-
-    await expect(page.locator('text=Level Updated')).not.toBeVisible();
-
-    await browser.close();
 });
